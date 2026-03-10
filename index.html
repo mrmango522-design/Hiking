@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行山易 - 積分換領系統</title>
+    <style>
+        /* 模擬手機應用程式風格：郊區咖啡色系 */
+        :root {
+            --primary-brown: #5d4037;
+            --secondary-brown: #8d6e63;
+            --bg-brown: #efebe9;
+            --accent-orange: #d84315;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            background-color: #d7ccc8;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fffaf0;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        header {
+            background-color: var(--primary-brown);
+            color: white;
+            text-align: center;
+            padding: 18px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .content {
+            padding: 16px;
+        }
+
+        /* 用戶選取與積分 */
+        .user-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-brown);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #bcaaa4;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--secondary-brown);
+            font-size: 16px;
+            width: 60%;
+            color: var(--primary-brown);
+        }
+
+        .points-box {
+            text-align: right;
+            font-weight: bold;
+            color: var(--primary-brown);
+        }
+
+        .points-val {
+            display: block;
+            font-size: 24px;
+            color: var(--accent-orange);
+        }
+
+        /* 主圖片 */
+        .main-img {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            object-fit: cover;
+        }
+
+        /* 資訊儀表板 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .info-text {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #444;
+            line-height: 1.6;
+            border-left: 4px solid var(--secondary-brown);
+        }
+
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-small {
+            background-color: var(--secondary-brown);
+            color: white;
+            border: none;
+            padding: 10px 5px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-small:active { opacity: 0.8; }
+
+        /* 積分換領咭片 */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-brown);
+            margin: 20px 0 15px 0;
+            padding-left: 5px;
+            border-left: 5px solid var(--accent-orange);
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .reward-card {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .reward-card h4 { margin: 5px 0; color: #333; }
+        .reward-card p { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .cost-tag { color: var(--accent-orange); font-weight: bold; font-size: 14px; margin-bottom: 10px; display: block;}
+
+        .redeem-btn {
+            background-color: var(--primary-brown);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .redeem-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* 現有優惠 */
+        .coupon-list {
+            margin-top: 10px;
+        }
+
+        .coupon-item {
+            background: #fff3e0;
+            border: 1px dashed #ff9800;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .use-coupon-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>行山易</header>
+
+    <div class="content">
+        <div class="user-section">
+            <select id="userSelect" onchange="calculatePoints()">
+                <option value="">載入用戶中...</option>
+            </select>
+            <div class="points-box">
+                現存積分
+                <span class="points-val" id="totalPoints">0</span>
+            </div>
+        </div>
+
+        <img src="duck.png" alt="行山圖片" class="main-img" onerror="this.src='https://via.placeholder.com/400x200?text=duck.png'">
+
+        <div class="info-grid">
+            <div class="info-text">
+                現在時間<br>
+                <strong>行山時間：2小時5分鐘</strong><br>
+                上次垃圾桶：雞仔山山頂<br>
+                抵達時間：13:24<br>
+                距離日落：4小時08分
+            </div>
+            <div class="action-btns">
+                <button class="btn-small" onclick="window.open('map.png')">尋找最近的<br>智能垃圾桶</button>
+                <button class="btn-small" onclick="window.open('QR.png')" style="background-color: var(--primary-brown);">換取積分</button>
+            </div>
+        </div>
+
+        <div class="section-title">積分換領</div>
+        <div class="cards-container">
+            <div class="reward-card">
+                <h4>胃康</h4>
+                <p>100現金券</p>
+                <span class="cost-tag">100 積分</span>
+                <button class="redeem-btn" onclick="handleRedeem('胃康', '100現金券', 100)">換領</button>
+            </div>
+            <div class="reward-card">
+                <h4>百街</h4>
+                <p>200現金券</p>
+                <span class="cost-tag">200 積分</span>
+                <button class="redeem-btn" onclick="handleRedeem('百街', '200現金券', 200)">換領</button>
+            </div>
+            <div class="reward-card">
+                <h4>肯德街</h4>
+                <p>炸雞買一送一</p>
+                <span class="cost-tag">200 積分</span>
+                <button class="redeem-btn" onclick="handleRedeem('肯德街', '炸雞買一送一', 200)">換領</button>
+            </div>
+            <div class="reward-card">
+                <h4>LOG Off</h4>
+                <p>咕姑固半價</p>
+                <span class="cost-tag">500 積分</span>
+                <button class="redeem-btn" onclick="handleRedeem('LOG Off', '咕姑固半價', 500)">換領</button>
+            </div>
+        </div>
+
+        <div class="section-title" id="myCouponTitle" style="display:none;">現有優惠</div>
+        <div id="couponList" class="coupon-list"></div>
+    </div>
+</div>
+
+<script>
+    // 配置
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThT-47my3Cdbv_hepyxxP3eeiggsGm5vFL5O4CBeTMXda73AFsnvMfDt0RyeTrpYw7ufz_tWpQ3C40/pub?output=csv';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCgkWh_aeXNBPhmE-_Clmxy75pFy7KBNqvRz0ZDAMcNYZfKD1Tt5MdI0aZrc9EUMdq/exec';
+
+    let allData = [];
+    let userPoints = 0;
+
+    // 1. 初始化讀取資料
+    async function init() {
+        try {
+            const response = await fetch(CSV_URL);
+            const data = await response.text();
+            parseCSV(data);
+        } catch (error) {
+            console.error("讀取失敗:", error);
+            alert("讀取 Google Sheet 失敗，請確認已發佈網上。");
+        }
+    }
+
+    function parseCSV(text) {
+        const rows = text.split('\n').map(row => row.split(','));
+        allData = rows.slice(1); // 移除標題列
+        
+        // 提取 A 行所有唯一用戶
+        const users = [...new Set(allData.map(r => r[0].trim()).filter(u => u))];
+        const select = document.getElementById('userSelect');
+        select.innerHTML = '<option value="">-- 請選取用戶 --</option>';
+        
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u;
+            opt.textContent = u;
+            select.appendChild(opt);
+        });
+        updateButtons();
+    }
+
+    // 2. 計算積分
+    function calculatePoints() {
+        const currentUser = document.getElementById('userSelect').value;
+        if (!currentUser) {
+            userPoints = 0;
+            document.getElementById('totalPoints').textContent = 0;
+            updateButtons();
+            return;
+        }
+
+        userPoints = allData
+            .filter(r => r[0].trim() === currentUser)
+            .reduce((sum, r) => sum + (parseFloat(r[3]) || 0), 0);
+
+        if (userPoints < 0) userPoints = 0;
+        document.getElementById('totalPoints').textContent = Math.floor(userPoints);
+        updateButtons();
+    }
+
+    // 3. 更新按鈕狀態
+    function updateButtons() {
+        const currentUser = document.getElementById('userSelect').value;
+        const btns = document.querySelectorAll('.redeem-btn');
+        btns.forEach(btn => {
+            const cost = parseInt(btn.previousElementSibling.textContent);
+            btn.disabled = (!currentUser || userPoints < cost);
+        });
+    }
+
+    // 4. 處理換領
+    async function handleRedeem(shop, item, cost) {
+        const user = document.getElementById('userSelect').value;
+        if (confirm(`確定換取 ${shop} ${item} 嗎？`)) {
+            
+            // 立即更新介面
+            userPoints -= cost;
+            document.getElementById('totalPoints').textContent = Math.floor(userPoints);
+            updateButtons();
+            addCouponToUI(shop, item);
+
+            // 準備資料
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-HK').replace(/\//g, '-');
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+            const payload = {
+                user: user,
+                date: dateStr,
+                time: timeStr,
+                points: -cost,
+                shop: shop,
+                item: item
+            };
+
+            // 傳送至 Google Apps Script
+            try {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                console.log("資料已背景提交至 Google Sheet");
+            } catch (err) {
+                console.error("提交失敗", err);
+            }
+        }
+    }
+
+    // 5. 優惠券顯示
+    function addCouponToUI(shop, item) {
+        document.getElementById('myCouponTitle').style.display = 'block';
+        const list = document.getElementById('couponList');
+        const div = document.createElement('div');
+        div.className = 'coupon-item';
+        div.innerHTML = `
+            <div>
+                <strong>${shop}</strong><br>
+                <small>${item}</small>
+            </div>
+            <button class="use-coupon-btn" onclick="useCoupon(this)">使用此券</button>
+        `;
+        list.prepend(div);
+    }
+
+    function useCoupon(btn) {
+        if(confirm("確定現在使用嗎？使用後會消失。")) {
+            btn.parentElement.remove();
+            if(document.getElementById('couponList').children.length === 0) {
+                document.getElementById('myCouponTitle').style.display = 'none';
+            }
+        }
+    }
+
+    // 啟動
+    init();
+</script>
+
+</body>
+</html>
